@@ -31,7 +31,10 @@ export async function run(): Promise<void> {
 
     // the value of merge_commit_sha changes depending on the status of the pull request
     // see https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
-    const githubSha = (github.context.payload.pull_request as PullRequest).merge_commit_sha
+    const prPayload = (github.context.payload.pull_request as PullRequest)
+
+    const githubSha = prPayload.merge_commit_sha
+    const prBaseBranchSha = prPayload.base.sha
     const prBranch = inputs.cherryPickBranch
       ? inputs.cherryPickBranch
       : `cherry-pick-${inputs.branch}-${githubSha}`
@@ -71,7 +74,7 @@ export async function run(): Promise<void> {
       '1',
       '--strategy=recursive',
       '--strategy-option=theirs',
-      `${githubSha}`
+      `${prBaseBranchSha}..${githubSha}`
     ])
     if (result.exitCode !== 0 && !result.stderr.includes(CHERRYPICK_EMPTY)) {
       throw new Error(`Unexpected error: ${result.stderr}`)
