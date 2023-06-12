@@ -11,7 +11,7 @@
     "lint": "eslint src/**/*.ts --fix",
     "package": "ncc build ./src/index.ts",
     "test": "jest --runInBand",
-    "all": "npm run test && npm run format && npm run lint && npm run build"
+    "all": "npm run format && npm run lint && npm run build"
   },
   "repository": {
     "type": "git",

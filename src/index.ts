@@ -4,7 +4,7 @@ import * as exec from '@actions/exec'
 import * as utils from './utils'
 import * as github from '@actions/github'
 import {Inputs, createPullRequest} from './github-helper'
-import { PullRequest } from '@octokit/webhooks-definitions/schema'
+import {PullRequest} from '@octokit/webhooks-definitions/schema'
 
 const CHERRYPICK_EMPTY =
   'The previous cherry-pick is now empty, possibly due to conflict resolution.'
@@ -31,7 +31,10 @@ export async function run(): Promise<void> {
 
     // the value of merge_commit_sha changes depending on the status of the pull request
     // see https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#get-a-pull-request
-    const githubSha = (github.context.payload.pull_request as PullRequest).merge_commit_sha
+    const prPayload = github.context.payload.pull_request as PullRequest
+
+    const githubSha = prPayload.merge_commit_sha
+    const prBaseBranchSha = prPayload.base.sha
     const prBranch = inputs.cherryPickBranch
       ? inputs.cherryPickBranch
       : `cherry-pick-${inputs.branch}-${githubSha}`
@@ -63,16 +66,29 @@ export async function run(): Promise<void> {
     await gitExecution(['checkout', '-b', prBranch, `origin/${inputs.branch}`])
     core.endGroup()
 
+    let result
     // Cherry pick
     core.startGroup('Cherry picking')
-    const result = await gitExecution([
-      'cherry-pick',
-      '-m',
-      '1',
-      '--strategy=recursive',
-      '--strategy-option=theirs',
-      `${githubSha}`
-    ])
+    if (prPayload.commits === 1) {
+      result = await gitExecution([
+        'cherry-pick',
+        '-m',
+        '1',
+        '--strategy=recursive',
+        '--strategy-option=theirs',
+        `${githubSha}`
+      ])
+    } else {
+      result = await gitExecution([
+        'cherry-pick',
+        '-m',
+        '1',
+        '--strategy=recursive',
+        '--strategy-option=theirs',
+        `${prBaseBranchSha}..${githubSha}`
+      ])
+    }
+
     if (result.exitCode !== 0 && !result.stderr.includes(CHERRYPICK_EMPTY)) {
       throw new Error(`Unexpected error: ${result.stderr}`)
     }
