@@ -75,7 +75,6 @@ export async function run(): Promise<void> {
         '-m',
         '1',
         '--strategy=recursive',
-        '--strategy-option=theirs',
         `${githubSha}`
       ])
     } else {
@@ -84,7 +83,6 @@ export async function run(): Promise<void> {
         '-m',
         '1',
         '--strategy=recursive',
-        '--strategy-option=theirs',
         `${prBaseBranchSha}..${githubSha}`
       ])
     }
