@@ -34,7 +34,6 @@ export async function run(): Promise<void> {
     const prPayload = github.context.payload.pull_request as PullRequest
 
     const githubSha = prPayload.merge_commit_sha
-    const prBaseBranchSha = prPayload.base.sha
     const prBranch = inputs.cherryPickBranch
       ? inputs.cherryPickBranch
       : `cherry-pick-${inputs.branch}-${githubSha}`
@@ -66,26 +65,15 @@ export async function run(): Promise<void> {
     await gitExecution(['checkout', '-b', prBranch, `origin/${inputs.branch}`])
     core.endGroup()
 
-    let result
     // Cherry pick
     core.startGroup('Cherry picking')
-    if (prPayload.commits === 1) {
-      result = await gitExecution([
-        'cherry-pick',
-        '-m',
-        '1',
-        '--strategy=recursive',
-        `${githubSha}`
-      ])
-    } else {
-      result = await gitExecution([
-        'cherry-pick',
-        '-m',
-        '1',
-        '--strategy=recursive',
-        `${prBaseBranchSha}..${githubSha}`
-      ])
-    }
+    const result = await gitExecution([
+      'cherry-pick',
+      '-m',
+      '1',
+      '--strategy=recursive',
+      `${githubSha}`
+    ])
 
     if (result.exitCode !== 0 && !result.stderr.includes(CHERRYPICK_EMPTY)) {
       throw new Error(`Unexpected error: ${result.stderr}`)
